@@ -1,0 +1,143 @@
+service: sls-cognito-typescript
+
+frameworkVersion: '3'
+
+provider:
+  name: aws
+  runtime: nodejs14.x
+  stage: ${opt:stage, 'dev'}
+  region: ${opt:region, 'us-east-1'}
+
+  environment:
+    userPoolId:
+      Ref: CognitoUserPool
+    clientId:
+      Ref: CognitoUserPoolClient
+
+functions:
+  register:
+    handler: src/handler/auth/register.handler
+    events:
+      - http:
+          path: user/register
+          method: post
+          cors: true
+    role: RegisterUserRole
+
+  login:
+    handler: src/handler/auth/login.handler
+    events:
+      - http:
+          path: user/login
+          method: post
+          cors: true
+    role: LoginUserRole
+
+  profile:
+    handler: src/handler/user/profile.handler
+    events:
+      - http:
+          path: user/profile
+          method: post
+          cors: true
+          authorizer:
+            name: PrivateAuthorizer
+            type: COGNITO_USER_POOLS
+            arn:
+              Fn::GetAtt:
+                - CognitoUserPool
+                - Arn
+            claims:
+              - email
+
+resources:
+  Resources:
+    CognitoUserPool:
+      Type: AWS::Cognito::UserPool
+      Properties:
+        UserPoolName: ${self:provider.stage}-user-pool
+        Schema:
+          - Name: email
+            Required: true
+            Mutable: true
+        Policies:
+          PasswordPolicy:
+            MinimumLength: 6
+        AutoVerifiedAttributes: ["email"]
+
+    CognitoUserPoolClient:
+      Type: AWS::Cognito::UserPoolClient
+      Properties:
+        ClientName: ${self:provider.stage}-user-pool-client
+        UserPoolId:
+          Ref: CognitoUserPool
+        ExplicitAuthFlows:
+          - ADMIN_NO_SRP_AUTH
+        GenerateSecret: false
+        RefreshTokenValidity: 1
+
+    RegisterUserRole:
+      Type: AWS::IAM::Role
+      Properties:
+        RoleName: RegisterUserRole
+        AssumeRolePolicyDocument:
+          Statement:
+            - Effect: Allow
+              Principal:
+                Service:
+                  - lambda.amazonaws.com
+              Action: sts:AssumeRole
+        Policies:
+          - PolicyName: RegisterUserPolicy
+            PolicyDocument:
+              Statement:
+                - Effect: Allow
+                  Action:
+                    - logs:CreateLogGroup
+                    - logs:CreateLogStream
+                    - logs:PutLogEvents
+                  Resource: 'arn:aws:logs:${self:provider.region}:${aws:accountId}:log-group:/aws/lambda/*:*:*'
+                - Effect: Allow
+                  Action:
+                    - cognito-idp:AdminCreateUser #Creates a new user in the specified user pool and sends a welcome message via email or phone (SMS)
+                    - cognito-idp:AdminSetUserPassword #Sets the specified user's password in a user pool as an administrator. Works on any user
+                  Resource:
+                    Fn::Join:
+                      - ''
+                      - 
+                        - 'arn:aws:cognito-idp:${self:provider.region}:${aws:accountId}:userpool/'
+                        - Ref: CognitoUserPool
+
+    LoginUserRole:
+      Type: AWS::IAM::Role
+      Properties:
+        RoleName: LoginUserRole
+        AssumeRolePolicyDocument:
+          Statement:
+            - Effect: Allow
+              Principal:
+                Service:
+                  - lambda.amazonaws.com
+              Action: sts:AssumeRole
+        Policies:
+          - PolicyName: LoginUserUserPolicy
+            PolicyDocument:
+              Statement:
+                - Effect: Allow
+                  Action:
+                    - logs:CreateLogGroup
+                    - logs:CreateLogStream
+                    - logs:PutLogEvents
+                  Resource: 'arn:aws:logs:${self:provider.region}:${aws:accountId}:log-group:/aws/lambda/*:*:*'
+                - Effect: Allow
+                  Action:
+                    - cognito-idp:AdminInitiateAuth #Authenticates a user in a user pool as an administrator. Works on any user
+                  Resource:
+                    Fn::Join:
+                      - ''
+                      - 
+                        - 'arn:aws:cognito-idp:${self:provider.region}:${aws:accountId}:userpool/'
+                        - Ref: CognitoUserPool
+
+plugins:
+  - serverless-plugin-typescript
