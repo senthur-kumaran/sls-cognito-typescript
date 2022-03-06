@@ -1,6 +1,6 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
 import * as AWS from 'aws-sdk';
-import { sendResponse, validateInput } from '../../utils/helpers';
+import { sendError, sendSuccess, validateInput } from '../../utils/helpers';
 import { statusCode } from '../../utils/statusCode';
 
 const cognito = new AWS.CognitoIdentityServiceProvider();
@@ -9,7 +9,7 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
   try {
     const eventBody = event.body ?? '';
     const isValid = validateInput(eventBody);
-    if (!isValid) return sendResponse(statusCode.BAD_REQUEST, { message: 'Invalid input' });
+    if (!isValid) return sendSuccess(statusCode.BAD_REQUEST, { message: 'Invalid input' });
 
     const { email, password } = JSON.parse(eventBody);
     const { userPoolId = '', clientId = '' } = process.env;
@@ -25,9 +25,8 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
       },
     };
     const response = await cognito.adminInitiateAuth(params).promise();
-    return sendResponse(statusCode.OK, { message: 'Success', token: response.AuthenticationResult?.IdToken });
-  } catch (error) {
-    const message = error.message ? error.message : 'Internal server error';
-    return sendResponse(statusCode.INTERNAL_SERVER_ERROR, { message });
+    return sendSuccess(statusCode.OK, { message: 'Success', token: response.AuthenticationResult?.IdToken });
+  } catch (error: unknown) {
+    return sendError(statusCode.INTERNAL_SERVER_ERROR, error);
   }
 };

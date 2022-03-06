@@ -1,21 +1,23 @@
 {
   "compilerOptions": {
-    "module": "commonjs",
-    "target": "es6",
-    "lib": [ "es6", "dom" ],
-    "moduleResolution": "node",
-    "rootDir": "./",
+    "preserveConstEnums": true,
+    "strictNullChecks": true,
     "sourceMap": true,
     "allowJs": true,
-    "noImplicitAny": true,
-    "noUnusedLocals": true,
-    "noImplicitThis": true,
-    "strictNullChecks": true,
-    "noImplicitReturns": true,
-    "preserveConstEnums": true,
-    "suppressImplicitAnyIndexErrors": true,
-    "forceConsistentCasingInFileNames": true
+    "target": "es2017",
+    "outDir": ".build",
+    "moduleResolution": "node",
+    "lib": ["es2017"],
+    "rootDir": "./",
+    "strict": true,
+    "module": "commonjs",
+    "esModuleInterop": true
   },
-  "exclude": [ "node_modules", "build", "webpack" ],
-  "types": [ "typePatches" ]
+  "include": [
+    "**/*"
+  ],
+  "exclude": [
+    "node_modules",
+    "**/*.spec.ts"
+  ]
 }
