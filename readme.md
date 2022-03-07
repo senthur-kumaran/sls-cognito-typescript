@@ -7,4 +7,4 @@
 
 ## Summary
 
-* Built a simple authentication using Serverless Framework (Typescript, API Gateway, Lambda, Cognito) with ESlint standard.
+* Built a simple authentication using Serverless Framework (Typescript, API Gateway, Lambda, Cognito).
